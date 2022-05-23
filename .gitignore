@@ -1,0 +1,21 @@
+# Raw data and R datasets
+data/raw
+*.Rds
+*.h5ad
+
+# Analysis output
+analysis
+
+# Rstudio files
+.Rproj.user
+
+# Temporary files
+*.tmp
+
+# Conda environments
+envs/
+
+# References
+*.pdf
+*.PDF
+*.Pdf
