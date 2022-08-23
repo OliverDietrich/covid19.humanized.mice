@@ -1,8 +1,8 @@
-# Setup of the Seurat object from individual files
+# Setup of the Seurat object
 
 # Global options ---------------------------------------------------------------
 dir <- "data/raw/GSE200562/"
-dest <- "data/complete.Rds"
+dest <- "data/combined.Rds"
 
 # Read files -------------------------------------------------------------------
 cont <- list.files(dir)
@@ -42,43 +42,47 @@ for (i in names(ds)) {
     row.names = colnames(ds[[i]]),
     barcode   = colnames(ds[[i]]),
     dataset   = i,
+    condition = stringr::str_split(basename(file), "_", 3, simplify = T)[, 2],
     Mo_Mac    = colnames(ds[[i]]) %in% read.table(file)[, 1]
   )
 }
 
-# Combine datasets -------------------------------------------------------------
+# Combine data sets ------------------------------------------------------------
 
-# Coldata
-coldata <- do.call(rbind, coldata)
-coldata <- as.data.frame(coldata, row.names = coldata$barcode)
-
-index <- stringr::str_split_fixed(sc, "_", 3)[, 2]
-names(index) <- stringr::str_split_fixed(sc, "_", 3)[, 1]
-coldata$timepoint <- factor(index[ds$dataset])
-
-# Find shared genes
-lapply(ds, dim)
-genes <- NULL
-for (i in names(ds)) {
-  if (is.null(genes)) {
-    genes <- rownames(ds[[i]])
-  } else {
-    genes <- intersect(genes, rownames(ds[[i]]))
-  }
+# Identify set of shared features
+fset <- character()
+for (i in lapply(ds, rownames)) {
+  fset <- c(fset, i[!i %in% fset])
 }
-length(genes)
 
-# Subset data sets to shared genes
-ds <- lapply(ds, function(x) x[genes, ])
+# Add missing features (as zeros)
+for (i in names(ds)) {
+  mf <- fset[which(!fset %in% rownames(ds[[i]]))]
+  nc <- ncol(ds[[i]])
+  mm <- as(matrix(
+    data = 0, nrow = length(mf), ncol = nc,
+    dimnames = list(mf, colnames(ds[[i]]))
+    ), "dgCMatrix")
+  ds[[i]] <- rbind(ds[[i]], mm)
+  ds[[i]] <- ds[[i]][fset, ]
+}
 
-# Combine data sets
+# Check dimensions
+lapply(ds, dim)
+
+# Combine matrices
 ds <- do.call(cbind, ds)
+
+# Combine metadata
+coldata <- do.call(rbind, coldata)
+coldata <- coldata[match(coldata$barcode, colnames(ds)), ]
+row.names(coldata) <- colnames(ds)
 
 # Create Seurat object ---------------------------------------------------------
 
 ds <- Seurat::CreateSeuratObject(
-  counts = ds, meta.data = coldata, project = "Covid_huMice"
+  counts = ds, meta.data = coldata, project = "mmCovLung", assay = "RNA"
 )
 
-# Save file --------------------------------------------------------------------
+# Save object ------------------------------------------------------------------
 saveRDS(ds, dest)
