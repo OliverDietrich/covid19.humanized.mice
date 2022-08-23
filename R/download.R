@@ -1,4 +1,4 @@
-# Analysis of COVID-19 in a humanized mouse model
+# Download of the raw data from Gene Expresssion Omnibus (GEO)
 
 # Global options ---------------------------------------------------------------
 url <- "https://www-ncbi-nlm-nih-gov.ezproxy.u-pec.fr/geo/download/?acc=GSE200562&format=file"

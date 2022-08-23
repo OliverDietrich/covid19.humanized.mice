@@ -1,7 +1,8 @@
-# Analysis of COVID-19 in a humanized mouse model
+# Setup of the Seurat object from individual files
 
 # Global options ---------------------------------------------------------------
 dir <- "data/raw/GSE200562/"
+dest <- "data/complete.Rds"
 
 # Read files -------------------------------------------------------------------
 cont <- list.files(dir)
@@ -45,9 +46,39 @@ for (i in names(ds)) {
   )
 }
 
-# Combine datasets
-lapply(ds, rownames)
+# Combine datasets -------------------------------------------------------------
 
-# ds <- do.call(cbind, ds)
-
+# Coldata
 coldata <- do.call(rbind, coldata)
+coldata <- as.data.frame(coldata, row.names = coldata$barcode)
+
+index <- stringr::str_split_fixed(sc, "_", 3)[, 2]
+names(index) <- stringr::str_split_fixed(sc, "_", 3)[, 1]
+coldata$timepoint <- factor(index[ds$dataset])
+
+# Find shared genes
+lapply(ds, dim)
+genes <- NULL
+for (i in names(ds)) {
+  if (is.null(genes)) {
+    genes <- rownames(ds[[i]])
+  } else {
+    genes <- intersect(genes, rownames(ds[[i]]))
+  }
+}
+length(genes)
+
+# Subset data sets to shared genes
+ds <- lapply(ds, function(x) x[genes, ])
+
+# Combine data sets
+ds <- do.call(cbind, ds)
+
+# Create Seurat object ---------------------------------------------------------
+
+ds <- Seurat::CreateSeuratObject(
+  counts = ds, meta.data = coldata, project = "Covid_huMice"
+)
+
+# Save file --------------------------------------------------------------------
+saveRDS(ds, dest)

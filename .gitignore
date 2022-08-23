@@ -8,6 +8,7 @@ analysis
 
 # Rstudio files
 .Rproj.user
+.Rhistory
 
 # Temporary files
 *.tmp
